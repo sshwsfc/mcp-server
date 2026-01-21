@@ -1,0 +1,43 @@
+- 平台管理接口 > 核心模块 > 表管理 [统计各个设备表下的设备总数数据](https://airiot.apifox.cn/api-172107275.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据过滤器查询表数据](https://airiot.apifox.cn/api-172107276.md): 以query的查询格式为准
+- 平台管理接口 > 核心模块 > 表管理 [保存一条表数据到数据库](https://airiot.apifox.cn/api-172107277.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据表ID数组和部门ID数组查询部门和表定义映射数据](https://airiot.apifox.cn/api-172107278.md): 
+- 平台管理接口 > 核心模块 > 表管理 [在配置表中生成旧设备的名称字段](https://airiot.apifox.cn/api-172107279.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id数组查询表关系数据](https://airiot.apifox.cn/api-172107280.md): 
+- 平台管理接口 > 核心模块 > 表管理 [兼容刷新数据表order字段](https://airiot.apifox.cn/api-172107281.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id删除再添加表数据](https://airiot.apifox.cn/api-172107282.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id查询子级表数据](https://airiot.apifox.cn/api-172107283.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据表管理ID查询指令列表](https://airiot.apifox.cn/api-172107284.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据表管理ID数组查询指令列表](https://airiot.apifox.cn/api-172107285.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id查询映射表结构](https://airiot.apifox.cn/api-172107286.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id查询父级表数据](https://airiot.apifox.cn/api-172107287.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id查询表关系数据](https://airiot.apifox.cn/api-172107288.md): 
+- 平台管理接口 > 核心模块 > 表管理 [获取相关表结构和相关表记录数据](https://airiot.apifox.cn/api-357251302.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据表管理ID查询属性点列表](https://airiot.apifox.cn/api-172107289.md): 
+- 平台管理接口 > 核心模块 > 表管理 [验证当前记录的记录视图范围是否重复](https://airiot.apifox.cn/api-357251303.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id查询表数据](https://airiot.apifox.cn/api-172107290.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id及数据替换原有表数据](https://airiot.apifox.cn/api-172107291.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id从数据库删除一条表数据](https://airiot.apifox.cn/api-172107292.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据id更新表数据](https://airiot.apifox.cn/api-172107293.md): 
+- 平台管理接口 > 核心模块 > 表管理 [根据表ID列表统计设备在线状态数据.](https://airiot.apifox.cn/api-172107294.md): query参数格式
+- 平台管理接口 > 核心模块 > 表记录管理 [根据过滤器查询审核部门汇总数据](https://airiot.apifox.cn/api-172107295.md): 以query的查询格式为准
+- 平台管理接口 > 核心模块 > 表记录管理 [根据部门ID数组查询表记录部门关系](https://airiot.apifox.cn/api-172107296.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据数据表ID数组和表记录ID数组查询属性点列表](https://airiot.apifox.cn/api-357251304.md): [{"ids":["adg"],"tableId": "adg"}]
+- 平台管理接口 > 核心模块 > 表记录管理 [查询当前登录用户报警权限数据](https://airiot.apifox.cn/api-172107297.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据过滤器查询表记录数据](https://airiot.apifox.cn/api-172107298.md): 以query的查询格式为准
+- 平台管理接口 > 核心模块 > 表记录管理 [保存一条表记录数据到数据库](https://airiot.apifox.cn/api-172107299.md): 新增表记录时， 通过在 query 参数中添加 upsert 参数，并将其值设置为 true，系统会对比数据 ID。如果 ID 不同，系统将新增数据；如果 ID 相同，则更新数据。
+- 平台管理接口 > 核心模块 > 表记录管理 [根据过滤器查询归档表记录数据（跳转）.](https://airiot.apifox.cn/api-172107300.md): 以query的查询格式为准
+- 平台管理接口 > 核心模块 > 表记录管理 [根据id删除再添加表记录数据](https://airiot.apifox.cn/api-172107301.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [检测是否可以对当前表进行添加操作.](https://airiot.apifox.cn/api-172107302.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据表记录ID查询指令列表](https://airiot.apifox.cn/api-172107303.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [删除表](https://airiot.apifox.cn/api-172107304.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [导入json或excel中的表数据](https://airiot.apifox.cn/api-172107305.md): columns结构
+- 平台管理接口 > 核心模块 > 表记录管理 [保存多条 表记录数据到数据库](https://airiot.apifox.cn/api-172107306.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [批量删除 表记录数据](https://airiot.apifox.cn/api-172107307.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [批量更新 表记录数据](https://airiot.apifox.cn/api-172107308.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据表记录ID查询属性点列表](https://airiot.apifox.cn/api-172107309.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据表记录ID数组查询属性点列表](https://airiot.apifox.cn/api-172107310.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据id查询表记录数据](https://airiot.apifox.cn/api-172107311.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据id及数据替换原有表记录数据](https://airiot.apifox.cn/api-172107312.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据id从数据库删除一条表记录数据](https://airiot.apifox.cn/api-172107313.md): 
+- 平台管理接口 > 核心模块 > 表记录管理 [根据id更新表记录数据](https://airiot.apifox.cn/api-172107314.md): 
