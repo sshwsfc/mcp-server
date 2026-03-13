@@ -1,5 +1,42 @@
 import axios, { AxiosInstance } from 'axios';
-import type { AiriotConfig, ApiResponse, QueryParams, TableSchema, TableRecord, PageResponse, Tag, TimeSeriesData } from './types.js';
+import type {
+  AiriotConfig,
+  QueryParams,
+  TableSchema,
+  TableSchemaInput,
+  TableRecord,
+  PageResponse,
+  Tag,
+  TimeSeriesData,
+  // 报警模块类型
+  WarningLevel,
+  WarningRule,
+  RuleDetailAddOrUpdate,
+  Warning,
+  WarningQueryParams,
+  WarningStatus,
+  BatchConfirmRequest,
+  WarningArchive,
+  ArchiveSetting,
+  WarningStatistics,
+  WarningTimeline,
+  WarningClean,
+  CleanAddOrUpdate,
+  CleanExecuteResult,
+  // 兼容旧类型
+  Alarm,
+  AlarmQueryParams,
+  FileInfo,
+  UploadResult,
+  ControlCommand,
+  ControlResult,
+  Report,
+  ReportData,
+  LoginInput,
+  LoginOutput,
+} from './types.js';
+import { logger } from './logger.js';
+import { ApiError, NetworkError, AuthError, NotFoundError } from './errors.js';
 
 /**
  * AIRIOT API 客户端
@@ -13,6 +50,16 @@ export class AiriotApiClient {
     this.config = config;
     this.token = config.token;
 
+    // 打印初始化配置信息
+    logger.info('=== AiriotApiClient Init ===', {
+      baseUrl: config.baseUrl,
+      projectId: config.projectId,
+      hasToken: !!config.token,
+      hasUsernamePassword: !!(config.username && config.password),
+      tokenLength: config.token?.length,
+      tokenPrefix: config.token ? config.token.substring(0, 10) + '...' : 'none',
+    });
+
     this.client = axios.create({
       baseURL: config.baseUrl,
       timeout: 30000,
@@ -22,20 +69,78 @@ export class AiriotApiClient {
       },
     });
 
-    // 请求拦截器
+    // 请求拦截器 - 添加 token 调试日志
     this.client.interceptors.request.use((config) => {
+      const authHeader = config.headers['Authorization'];
+      logger.debug('=== API Request ===', {
+        url: config.url,
+        method: config.method,
+        hasToken: !!this.token,
+        tokenLength: this.token?.length,
+        tokenPrefix: this.token ? String(this.token).substring(0, 10) + '...' : 'none',
+        authHeader: authHeader ? String(authHeader).substring(0, 20) + '...' : 'none',
+        projectHeader: config.headers['x-request-project'],
+      });
+
       if (this.token) {
         config.headers['Authorization'] = `Bearer ${this.token}`;
       }
       return config;
     });
 
-    // 响应拦截器
+    // 响应拦截器 - 改进错误处理
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        logger.debug('=== API Response ===', {
+          url: response.config.url,
+          method: response.config.method,
+          status: response.status,
+          statusText: response.statusText,
+        });
+        return response;
+      },
       (error) => {
-        console.error('API Error:', error.response?.data || error.message);
-        throw error;
+        // 详细的错误日志
+        const requestInfo = {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          message: error.message,
+          hasToken: !!this.token,
+          requestAuthHeader: error.config?.headers?.['Authorization'] ? String(error.config.headers['Authorization']).substring(0, 20) + '...' : 'none',
+        };
+
+        // 401 错误时额外打印 token 信息
+        if (error.response?.status === 401) {
+          logger.error('=== Authentication Failed (401) ===', {
+            ...requestInfo,
+            responseData: error.response?.data,
+            currentToken: this.token ? String(this.token).substring(0, 20) + '...' : 'none',
+            tokenLength: this.token?.length,
+          });
+        } else {
+          logger.error('=== API Request Failed ===', requestInfo);
+        }
+
+        // 转换为自定义错误类型
+        if (error.response) {
+          const { status, data } = error.response;
+
+          if (status === 401) {
+            throw new AuthError(data?.message || 'Authentication failed', data);
+          }
+          if (status === 404) {
+            throw new NotFoundError(data?.message || 'Resource not found', data);
+          }
+          throw new ApiError(data?.message || 'API request failed', status, data);
+        }
+
+        if (error.request) {
+          throw new NetworkError('Network error: No response received', error);
+        }
+
+        throw new ApiError(error.message || 'Unknown error');
       }
     );
   }
@@ -44,24 +149,56 @@ export class AiriotApiClient {
    * 设置认证令牌
    */
   setToken(token: string): void {
+    logger.info('=== Set Token ===', {
+      tokenLength: token?.length,
+      tokenPrefix: token ? token.substring(0, 10) + '...' : 'none',
+    });
     this.token = token;
   }
 
   /**
    * 用户登录
+   * API: POST /core/auth/login
    */
-  async login(username: string, password: string): Promise<void> {
-    const response = await this.client.post<ApiResponse<{ token: string }>>('/api/auth/login', {
+  async login(username: string, password: string, code?: string): Promise<LoginOutput> {
+    logger.info('=== Login Request ===', {
       username,
-      password,
+      hasPassword: !!password,
+      hasCode: !!code,
+      baseUrl: this.config.baseUrl,
       projectId: this.config.projectId,
     });
 
-    if (response.data.code === 200 && response.data.data.token) {
-      this.token = response.data.data.token;
-    } else {
-      throw new Error(response.data.message || '登录失败');
+    const response = await this.client.post<LoginOutput>('/core/auth/login', {
+      username,
+      password,
+      code,
+    });
+
+    const result = response.data;
+
+    // 打印登录结果
+    logger.info('=== Login Response ===', {
+      success: !!result.token,
+      userId: result.id,
+      username: result.username,
+      isSuper: result.isSuper,
+      tokenLength: result.token?.length,
+      tokenPrefix: result.token ? result.token.substring(0, 10) + '...' : 'none',
+      rolesCount: result.roles?.length,
+      permissionsCount: result.permissions?.length,
+    });
+
+    // 保存 token 到客户端
+    if (result.token) {
+      this.token = result.token;
+      logger.info('Token saved to client', {
+        tokenLength: this.token.length,
+        tokenPrefix: this.token.substring(0, 10) + '...',
+      });
     }
+
+    return result;
   }
 
 
@@ -103,10 +240,12 @@ export class AiriotApiClient {
   }
 
   /**
-   * 保存表数据
+   * 保存表数据（创建表）
    * API: POST /core/t/schema
+   *
+   * @param data 表结构定义，需要包含完整的 schema 信息
    */
-  async saveTable(data: Partial<TableSchema>): Promise<string> {
+  async saveTable(data: TableSchemaInput): Promise<string> {
     const response = await this.client.post<{ InsertedID: string }>(
       '/core/t/schema',
       data
@@ -353,6 +492,731 @@ export class AiriotApiClient {
         },
       }
     );
+
+    return response.data || [];
+  }
+
+  // ==================== 报警模块接口 ====================
+
+  // --------------------
+  // 报警规则管理 (/warning/rule)
+  // --------------------
+
+  /**
+   * 查询报警规则列表
+   * API: GET /warning/rule
+   */
+  async getWarningRules(params?: QueryParams): Promise<PageResponse<WarningRule>> {
+    const queryParams: Record<string, any> = {};
+
+    if (params?.withCount) {
+      queryParams.withCount = true;
+    }
+
+    const response = await this.client.get<WarningRule[]>(
+      '/warning/rule',
+      {
+        params: {
+          query: JSON.stringify(params || {}),
+          ...queryParams,
+        },
+      }
+    );
+
+    let totalCount = response.data?.length || 0;
+
+    if (params?.withCount && response.headers['count']) {
+      totalCount = parseInt(response.headers['count'], 10);
+    }
+
+    return {
+      list: response.data || [],
+      total: totalCount,
+      limit: params?.limit || 50,
+      skip: params?.skip || 0,
+    };
+  }
+
+  /**
+   * 创建报警规则
+   * API: POST /warning/rule
+   */
+  async createWarningRule(data: RuleDetailAddOrUpdate): Promise<string> {
+    const response = await this.client.post<{ InsertedID: string }>(
+      '/warning/rule',
+      data
+    );
+
+    if (response.data.InsertedID) {
+      return response.data.InsertedID;
+    }
+    throw new Error('创建报警规则失败');
+  }
+
+  /**
+   * 根据ID查询单个报警规则
+   * API: GET /warning/rule/{id}
+   */
+  async getWarningRuleById(id: string): Promise<WarningRule | null> {
+    const response = await this.client.get<WarningRule>(`/warning/rule/${id}`);
+
+    return response.data || null;
+  }
+
+  /**
+   * 更新报警规则
+   * API: PATCH /warning/rule/{id}
+   */
+  async updateWarningRule(id: string, data: Partial<WarningRule>): Promise<void> {
+    const response = await this.client.patch<{ status: string }>(
+      `/warning/rule/${id}`,
+      data
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('更新报警规则失败');
+    }
+  }
+
+  /**
+   * 删除报警规则
+   * API: DELETE /warning/rule/{id}
+   */
+  async deleteWarningRule(id: string): Promise<void> {
+    const response = await this.client.delete<{ status: string }>(
+      `/warning/rule/${id}`
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('删除报警规则失败');
+    }
+  }
+
+  // --------------------
+  // 报警管理 (/warning/warning)
+  // --------------------
+
+  /**
+   * 查询报警列表
+   * API: GET /warning/warning
+   */
+  async getWarnings(params?: WarningQueryParams): Promise<PageResponse<Warning>> {
+    const queryParams: Record<string, any> = {};
+
+    if (params?.withCount) {
+      queryParams.withCount = true;
+    }
+
+    const response = await this.client.get<Warning[]>(
+      '/warning/warning',
+      {
+        params: {
+          query: JSON.stringify(params || {}),
+          ...queryParams,
+        },
+      }
+    );
+
+    let totalCount = response.data?.length || 0;
+
+    if (params?.withCount && response.headers['count']) {
+      totalCount = parseInt(response.headers['count'], 10);
+    }
+
+    return {
+      list: response.data || [],
+      total: totalCount,
+      limit: params?.limit || 50,
+      skip: params?.skip || 0,
+    };
+  }
+
+  /**
+   * 创建报警
+   * API: POST /warning/warning
+   */
+  async createWarning(data: Partial<Warning>): Promise<string> {
+    const response = await this.client.post<{ InsertedID: string }>(
+      '/warning/warning',
+      data
+    );
+
+    if (response.data.InsertedID) {
+      return response.data.InsertedID;
+    }
+    throw new Error('创建报警失败');
+  }
+
+  /**
+   * 根据ID查询单个报警
+   * API: GET /warning/warning/{id}
+   */
+  async getWarningById(id: string): Promise<Warning | null> {
+    const response = await this.client.get<Warning>(`/warning/warning/${id}`);
+
+    return response.data || null;
+  }
+
+  /**
+   * 更新报警
+   * API: PATCH /warning/warning/{id}
+   */
+  async updateWarning(id: string, data: Partial<Warning>): Promise<void> {
+    const response = await this.client.patch<{ status: string }>(
+      `/warning/warning/${id}`,
+      data
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('更新报警失败');
+    }
+  }
+
+  /**
+   * 删除报警
+   * API: DELETE /warning/warning/{id}
+   */
+  async deleteWarning(id: string): Promise<void> {
+    const response = await this.client.delete<{ status: string }>(
+      `/warning/warning/${id}`
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('删除报警失败');
+    }
+  }
+
+  /**
+   * 批量确认报警
+   * API: POST /warning/warning/batch-confirm
+   */
+  async batchConfirmWarnings(request: BatchConfirmRequest): Promise<void> {
+    const response = await this.client.post<{ status: string }>(
+      '/warning/warning/batch-confirm',
+      request
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('批量确认报警失败');
+    }
+  }
+
+  /**
+   * 查询归档报警
+   * API: GET /warning/warning/archive
+   */
+  async getArchivedWarnings(params?: WarningQueryParams): Promise<PageResponse<WarningArchive>> {
+    const queryParams: Record<string, any> = {};
+
+    if (params?.withCount) {
+      queryParams.withCount = true;
+    }
+
+    const response = await this.client.get<WarningArchive[]>(
+      '/warning/warning/archive',
+      {
+        params: {
+          query: JSON.stringify(params || {}),
+          ...queryParams,
+        },
+      }
+    );
+
+    let totalCount = response.data?.length || 0;
+
+    if (params?.withCount && response.headers['count']) {
+      totalCount = parseInt(response.headers['count'], 10);
+    }
+
+    return {
+      list: response.data || [],
+      total: totalCount,
+      limit: params?.limit || 50,
+      skip: params?.skip || 0,
+    };
+  }
+
+  /**
+   * 恢复归档报警
+   * API: POST /warning/warning/archive/restore
+   */
+  async restoreArchivedWarning(id: string): Promise<void> {
+    const response = await this.client.post<{ status: string }>(
+      `/warning/warning/archive/restore/${id}`
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('恢复归档报警失败');
+    }
+  }
+
+  /**
+   * 查询归档设置
+   * API: GET /warning/warning/archive-setting
+   */
+  async getArchiveSetting(): Promise<ArchiveSetting | null> {
+    const response = await this.client.get<ArchiveSetting>(
+      '/warning/warning/archive-setting'
+    );
+
+    return response.data || null;
+  }
+
+  /**
+   * 更新归档设置
+   * API: POST /warning/warning/archive-setting
+   */
+  async updateArchiveSetting(data: Partial<ArchiveSetting>): Promise<void> {
+    const response = await this.client.post<{ status: string }>(
+      '/warning/warning/archive-setting',
+      data
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('更新归档设置失败');
+    }
+  }
+
+  /**
+   * 获取报警描述列表
+   * API: GET /warning/warning/descriptions
+   */
+  async getWarningDescriptions(): Promise<string[]> {
+    const response = await this.client.get<string[]>(
+      '/warning/warning/descriptions'
+    );
+
+    return response.data || [];
+  }
+
+  /**
+   * 一键归档报警
+   * API: POST /warning/warning/archive-all
+   */
+  async archiveAllWarnings(): Promise<void> {
+    const response = await this.client.post<{ status: string }>(
+      '/warning/warning/archive-all'
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('一键归档失败');
+    }
+  }
+
+  /**
+   * 获取报警统计
+   * API: GET /warning/warning/statistics
+   */
+  async getWarningStatistics(): Promise<WarningStatistics> {
+    const response = await this.client.get<WarningStatistics>(
+      '/warning/warning/statistics'
+    );
+
+    return response.data || {
+      total: 0,
+      active: 0,
+      confirmed: 0,
+      recovered: 0,
+      archived: 0,
+      level1: 0,
+      level2: 0,
+      level3: 0,
+      level4: 0,
+    };
+  }
+
+  /**
+   * 获取最新报警
+   * API: GET /warning/warning/latest
+   */
+  async getLatestWarnings(limit: number = 10): Promise<Warning[]> {
+    const response = await this.client.get<Warning[]>(
+      '/warning/warning/latest',
+      {
+        params: { limit },
+      }
+    );
+
+    return response.data || [];
+  }
+
+  /**
+   * 获取报警时间线
+   * API: POST /warning/warning/timeline
+   */
+  async getWarningTimeline(
+    startTime: number,
+    endTime: number,
+    level?: WarningLevel
+  ): Promise<WarningTimeline[]> {
+    const response = await this.client.post<WarningTimeline[]>(
+      '/warning/warning/timeline',
+      {
+        startTime,
+        endTime,
+        level,
+      }
+    );
+
+    return response.data || [];
+  }
+
+  // --------------------
+  // 报警清除管理 (/warning/warningclean)
+  // --------------------
+
+  /**
+   * 查询清除规则列表
+   * API: GET /warning/warningclean
+   */
+  async getWarningCleans(params?: QueryParams): Promise<PageResponse<WarningClean>> {
+    const queryParams: Record<string, any> = {};
+
+    if (params?.withCount) {
+      queryParams.withCount = true;
+    }
+
+    const response = await this.client.get<WarningClean[]>(
+      '/warning/warningclean',
+      {
+        params: {
+          query: JSON.stringify(params || {}),
+          ...queryParams,
+        },
+      }
+    );
+
+    let totalCount = response.data?.length || 0;
+
+    if (params?.withCount && response.headers['count']) {
+      totalCount = parseInt(response.headers['count'], 10);
+    }
+
+    return {
+      list: response.data || [],
+      total: totalCount,
+      limit: params?.limit || 50,
+      skip: params?.skip || 0,
+    };
+  }
+
+  /**
+   * 创建清除规则
+   * API: POST /warning/warningclean
+   */
+  async createWarningClean(data: CleanAddOrUpdate): Promise<string> {
+    const response = await this.client.post<{ InsertedID: string }>(
+      '/warning/warningclean',
+      data
+    );
+
+    if (response.data.InsertedID) {
+      return response.data.InsertedID;
+    }
+    throw new Error('创建清除规则失败');
+  }
+
+  /**
+   * 执行清除
+   * API: POST /warning/warningclean/execute/{id}
+   */
+  async executeWarningClean(id: string): Promise<CleanExecuteResult> {
+    const response = await this.client.post<CleanExecuteResult>(
+      `/warning/warningclean/execute/${id}`
+    );
+
+    return response.data || { success: false };
+  }
+
+  /**
+   * 根据ID查询单个清除规则
+   * API: GET /warning/warningclean/{id}
+   */
+  async getWarningCleanById(id: string): Promise<WarningClean | null> {
+    const response = await this.client.get<WarningClean>(
+      `/warning/warningclean/${id}`
+    );
+
+    return response.data || null;
+  }
+
+  /**
+   * 更新清除规则
+   * API: PATCH /warning/warningclean/{id}
+   */
+  async updateWarningClean(id: string, data: Partial<WarningClean>): Promise<void> {
+    const response = await this.client.patch<{ status: string }>(
+      `/warning/warningclean/${id}`,
+      data
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('更新清除规则失败');
+    }
+  }
+
+  /**
+   * 删除清除规则
+   * API: DELETE /warning/warningclean/{id}
+   */
+  async deleteWarningClean(id: string): Promise<void> {
+    const response = await this.client.delete<{ status: string }>(
+      `/warning/warningclean/${id}`
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('删除清除规则失败');
+    }
+  }
+
+  // --------------------
+  // 兼容旧接口（废弃）
+  // --------------------
+
+  /**
+   * @deprecated 请使用 getWarnings 替代
+   * 查询告警列表
+   */
+  async getAlarms(params?: AlarmQueryParams): Promise<PageResponse<Alarm>> {
+    return this.getWarnings(params as WarningQueryParams);
+  }
+
+  /**
+   * @deprecated 请使用 getWarningById 替代
+   * 根据ID查询单个告警
+   */
+  async getAlarmById(id: string): Promise<Alarm | null> {
+    return this.getWarningById(id);
+  }
+
+  /**
+   * @deprecated 请使用 updateWarning 并传入确认状态替代
+   * 确认告警
+   */
+  async acknowledgeAlarm(id: string, note?: string, userId?: string): Promise<void> {
+    await this.updateWarning(id, {
+      status: 1,  // 1-已确认
+      confirmNote: note,
+      confirmUser: userId,
+    });
+  }
+
+  /**
+   * @deprecated 请使用 updateWarning 并传入恢复状态替代
+   * 解除告警
+   */
+  async resolveAlarm(id: string, note?: string): Promise<void> {
+    await this.updateWarning(id, {
+      status: 2,  // 2-已恢复
+      recoverNote: note,
+    });
+  }
+
+  // ==================== 文件管理接口 ====================
+
+  /**
+   * 上传文件
+   * API: POST /api/files/upload
+   */
+  async uploadFile(
+    file: Buffer,
+    filename: string,
+    mimeType?: string
+  ): Promise<UploadResult> {
+    const formData = new FormData();
+
+    // Node.js 环境 - 直接使用 Buffer
+    formData.append('file', file as any, filename);
+    if (mimeType) {
+      formData.append('mimeType', mimeType);
+    }
+
+    const response = await this.client.post<UploadResult>(
+      '/api/files/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * 下载文件
+   * API: GET /api/files/{id}/download
+   */
+  async downloadFile(id: string): Promise<{ data: Buffer; filename: string }> {
+    const response = await this.client.get(`/api/files/${id}/download`, {
+      responseType: 'arraybuffer',
+    });
+
+    const filename = response.headers['content-disposition']
+      ?.match(/filename="?(.+)"?/)?.[1] || 'file';
+
+    return {
+      data: response.data,
+      filename,
+    };
+  }
+
+  /**
+   * 获取文件信息
+   * API: GET /api/files/{id}
+   */
+  async getFileInfo(id: string): Promise<FileInfo | null> {
+    const response = await this.client.get<FileInfo>(`/api/files/${id}`);
+
+    return response.data || null;
+  }
+
+  /**
+   * 删除文件
+   * API: DELETE /api/files/{id}
+   */
+  async deleteFile(id: string): Promise<void> {
+    const response = await this.client.delete<{ status: string }>(`/api/files/${id}`);
+
+    if (response.data.status !== 'OK') {
+      throw new Error('删除文件失败');
+    }
+  }
+
+  // ==================== 设备控制接口 ====================
+
+  /**
+   * 发送控制命令
+   * API: POST /api/control/send
+   */
+  async sendControlCommand(command: ControlCommand): Promise<ControlResult> {
+    const response = await this.client.post<ControlResult>(
+      '/api/control/send',
+      command
+    );
+
+    return response.data;
+  }
+
+  /**
+   * 批量发送控制命令
+   * API: POST /api/control/batch
+   */
+  async sendBatchControlCommands(commands: ControlCommand[]): Promise<ControlResult[]> {
+    const response = await this.client.post<ControlResult[]>(
+      '/api/control/batch',
+      { commands }
+    );
+
+    return response.data || [];
+  }
+
+  // ==================== 报表管理接口 ====================
+
+  /**
+   * 查询报表列表
+   * API: GET /api/reports
+   */
+  async getReports(params?: QueryParams): Promise<Report[]> {
+    const response = await this.client.get<Report[]>('/api/reports', {
+      params: { query: JSON.stringify(params || {}) },
+    });
+
+    return response.data || [];
+  }
+
+  /**
+   * 根据ID查询单个报表
+   * API: GET /api/reports/{id}
+   */
+  async getReportById(id: string): Promise<Report | null> {
+    const response = await this.client.get<Report>(`/api/reports/${id}`);
+
+    return response.data || null;
+  }
+
+  /**
+   * 执行报表生成
+   * API: POST /api/reports/{id}/execute
+   */
+  async executeReport(
+    id: string,
+    parameters?: Record<string, any>
+  ): Promise<ReportData> {
+    const response = await this.client.post<ReportData>(
+      `/api/reports/${id}/execute`,
+      { parameters }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * 创建报表
+   * API: POST /api/reports
+   */
+  async createReport(data: Partial<Report>): Promise<string> {
+    const response = await this.client.post<{ InsertedID: string }>(
+      '/api/reports',
+      data
+    );
+
+    if (response.data.InsertedID) {
+      return response.data.InsertedID;
+    }
+    throw new Error('创建报表失败');
+  }
+
+  /**
+   * 更新报表
+   * API: PATCH /api/reports/{id}
+   */
+  async updateReport(id: string, data: Partial<Report>): Promise<void> {
+    const response = await this.client.patch<{ status: string }>(
+      `/api/reports/${id}`,
+      data
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('更新报表失败');
+    }
+  }
+
+  /**
+   * 删除报表
+   * API: DELETE /api/reports/{id}
+   */
+  async deleteReport(id: string): Promise<void> {
+    const response = await this.client.delete<{ status: string }>(
+      `/api/reports/${id}`
+    );
+
+    if (response.data.status !== 'OK') {
+      throw new Error('删除报表失败');
+    }
+  }
+
+  // ==================== 用户管理接口 ====================
+
+  /**
+   * 获取当前用户信息
+   * API: GET /api/user/me
+   */
+  async getCurrentUser(): Promise<Record<string, any> | null> {
+    const response = await this.client.get<Record<string, any>>('/api/user/me');
+
+    return response.data || null;
+  }
+
+  /**
+   * 获取用户列表
+   * API: GET /api/users
+   */
+  async getUsers(params?: QueryParams): Promise<Record<string, any>[]> {
+    const response = await this.client.get<Record<string, any>[]>('/api/users', {
+      params: { query: JSON.stringify(params || {}) },
+    });
 
     return response.data || [];
   }

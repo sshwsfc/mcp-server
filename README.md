@@ -1,14 +1,32 @@
 # AIRIOT MCP Server
 
-基于 Model Context Protocol (MCP) 的 AIRIOT IoT 平台服务器，为 AI 助手提供对 AIRIOT 数据表、记录、属性点和时序数据的访问能力。
+基于 Model Context Protocol (MCP) 的 AIRIOT IoT 平台服务器，为 AI 助手提供完整的 AIRIOT 平台访问能力。
 
 ## 功能特性
 
+### 核心能力
 - 📊 **数据表管理**: 查询、创建、更新、删除数据表
-- 📝 **记录操作**: 对表记录进行 CRUD 操作
+- 📝 **记录操作**: 对表记录进行 CRUD 操作（含批量）
 - 🏷️ **属性点查询**: 查询表和记录的属性点定义
 - 📈 **时序数据**: 查询设备最新数据和历史数据
 - 📊 **统计分析**: 设备在线状态统计
+
+### MCP 能力支持
+- 🔧 **Tools**: 30+ 工具接口
+- 📁 **Resources**: 10+ 资源端点，支持直接读取平台数据作为上下文
+- 💬 **Prompts**: 12+ 预定义提示词模板
+
+### 新增功能
+- 🚨 **告警管理**: 查询、确认、解除告警
+- 📁 **文件管理**: 上传、下载、删除文件
+- 🎮 **设备控制**: 发送控制命令
+- 📄 **报表管理**: 创建、执行、管理报表
+- 👤 **用户管理**: 查询用户信息
+
+### 开发体验
+- ⚙️ **配置文件**: 支持 `.airiotrc.json` 配置文件
+- 📝 **日志系统**: 分级日志，便于调试
+- 🛡️ **错误处理**: 完善的错误类型和错误恢复机制
 
 ## 安装
 
@@ -20,7 +38,24 @@ npm run build
 
 ## 配置
 
-### 环境变量
+### 方式一：配置文件（推荐）
+
+在项目根目录创建 `.airiotrc.json` 文件：
+
+```json
+{
+  "baseUrl": "https://your-airiot-server.com",
+  "projectId": "your-project-id",
+  "token": "your-api-token",
+  "timeout": 30000,
+  "logLevel": "info",
+  "retries": 3
+}
+```
+
+可参考 [`.airiotrc.json.example`](.airiotrc.json.example) 文件。
+
+### 方式二：环境变量
 
 创建 `.env` 文件或设置以下环境变量：
 
@@ -37,6 +72,9 @@ export AIRIOT_TOKEN="your-api-token"
 # 认证方式2: 使用用户名密码
 export AIRIOT_USERNAME="your-username"
 export AIRIOT_PASSWORD="your-password"
+
+# 日志级别（可选）
+export AIRIOT_LOG_LEVEL="info"
 ```
 
 ### MCP 配置
@@ -63,6 +101,38 @@ export AIRIOT_PASSWORD="your-password"
   }
 }
 ```
+
+## MCP 能力
+
+### Resources（资源）
+
+AI 可以直接读取以下资源作为上下文：
+
+| URI | 描述 |
+|-----|------|
+| `airiot://tables` | 数据表列表 |
+| `airiot://tables/{id}` | 数据表详情 |
+| `airiot://table/{tableName}/records` | 表记录列表 |
+| `airiot://devices` | 设备列表 |
+| `airiot://device/{id}` | 设备详情 |
+| `airiot://device/{deviceId}/tag/{tagId}/latest` | 最新数据 |
+| `airiot://stats/online` | 在线统计 |
+
+### Prompts（提示词模板）
+
+预定义的常用查询模板：
+
+| 模板名 | 描述 |
+|--------|------|
+| `list_tables` | 列出数据表 |
+| `describe_table` | 获取表结构 |
+| `query_devices` | 查询设备列表 |
+| `get_realtime_data` | 获取实时数据 |
+| `get_history_trend` | 获取历史趋势 |
+| `device_online_summary` | 设备在线摘要 |
+| `query_alarms` | 查询告警 |
+| `create_device` | 创建设备 |
+| `update_device_status` | 更新设备状态 |
 
 ## 可用工具
 
@@ -101,11 +171,47 @@ export AIRIOT_PASSWORD="your-password"
 | `get_latest_data` | 查询最新数据 |
 | `get_history_data` | 查询历史时序数据 |
 
-### 统计
+### 告警管理
 
 | 工具名 | 描述 |
 |--------|------|
-| `get_online_stats` | 统计设备在线状态 |
+| `get_alarms` | 查询告警列表 |
+| `get_alarm_by_id` | 查询告警详情 |
+| `acknowledge_alarm` | 确认告警 |
+| `resolve_alarm` | 解除告警 |
+
+### 文件管理
+
+| 工具名 | 描述 |
+|--------|------|
+| `upload_file` | 上传文件 |
+| `get_file_info` | 获取文件信息 |
+| `delete_file` | 删除文件 |
+
+### 设备控制
+
+| 工具名 | 描述 |
+|--------|------|
+| `send_control_command` | 发送控制命令 |
+| `send_batch_control_commands` | 批量发送控制命令 |
+
+### 报表管理
+
+| 工具名 | 描述 |
+|--------|------|
+| `get_reports` | 查询报表列表 |
+| `get_report_by_id` | 查询报表详情 |
+| `execute_report` | 执行报表生成 |
+| `create_report` | 创建报表 |
+| `update_report` | 更新报表 |
+| `delete_report` | 删除报表 |
+
+### 用户管理
+
+| 工具名 | 描述 |
+|--------|------|
+| `get_current_user` | 获取当前用户信息 |
+| `get_users` | 获取用户列表 |
 
 ## 使用示例
 
@@ -122,51 +228,102 @@ export AIRIOT_PASSWORD="your-password"
 ### 查询特定表的记录
 
 ```
-1. 先调用 get_tables 查找表ID
-2. 调用 get_table_records 工具，参数：
+调用 get_table_records 工具，参数：
 {
-  "tableId": "表ID",
+  "tableName": "device",
   "filter": { "status": "online" },
   "limit": 100
 }
 ```
 
-### 创建新记录
+### 创建新表
+
+创建表需要提供完整的 schema 定义：
 
 ```
-调用 create_record 工具，参数：
+调用 create_table 工具，参数：
 {
-  "tableId": "表ID",
-  "data": {
-    "name": "设备名称",
-    "status": "online",
-    "location": "位置信息"
+  "id": "my_table",
+  "title": "我的数据表",
+  "showField": "name",
+  "schema": {
+    "form": ["name", "status", "createTime"],
+    "key": "myTable",
+    "listFields": ["name", "status", "createTime"],
+    "name": "myTable",
+    "properties": {
+      "name": {
+        "type": "string",
+        "key": "name",
+        "title": "名称",
+        "fieldType": "input",
+        "listFields": true,
+        "createShow": true,
+        "editShow": true,
+        "need": true,
+        "unique": true
+      },
+      "status": {
+        "type": "string",
+        "key": "status",
+        "title": "状态",
+        "fieldType": "input",
+        "listFields": true,
+        "createShow": true,
+        "editShow": true,
+        "need": false
+      },
+      "createTime": {
+        "type": "string",
+        "key": "createTime",
+        "title": "创建时间",
+        "fieldType": "datePicker",
+        "listFields": true,
+        "createShow": false,
+        "editShow": false,
+        "disabled": true,
+        "format": "datetime"
+      }
+    },
+    "required": ["name"],
+    "title": "我的表",
+    "type": "object"
   }
 }
 ```
 
-### 查询设备最新数据
+### 查询告警
 
 ```
-调用 get_latest_data 工具，参数：
+调用 get_alarms 工具，参数：
 {
-  "deviceTagPairs": [
-    { "deviceId": "设备ID", "tagId": "属性点ID" }
-  ]
+  "level": "critical",
+  "status": "active",
+  "limit": 50
 }
 ```
 
-### 查询历史数据
+### 发送设备控制命令
 
 ```
-调用 get_history_data 工具，参数：
+调用 send_control_command 工具，参数：
 {
-  "deviceTagPairs": [
-    { "deviceId": "设备ID", "tagId": "属性点ID" }
-  ],
-  "startTime": 1704067200000,
-  "endTime": 1704153600000,
-  "limit": 1000
+  "deviceId": "设备ID",
+  "tagName": "control_tag",
+  "value": 1
+}
+```
+
+### 执行报表
+
+```
+调用 execute_report 工具，参数：
+{
+  "id": "报表ID",
+  "parameters": {
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31"
+  }
 }
 ```
 
@@ -186,24 +343,51 @@ npm run build
 npm start
 ```
 
+## 项目结构
+
+```
+mcp-server/
+├── src/
+│   ├── index.ts           # MCP 服务器入口
+│   ├── airiot-api.ts      # AIRIOT API 客户端
+│   ├── types.ts           # 类型定义
+│   ├── config.ts          # 配置管理
+│   ├── logger.ts          # 日志系统
+│   ├── errors.ts          # 错误处理
+│   ├── tools/             # MCP 工具
+│   ├── resources/         # MCP 资源
+│   └── prompts/           # MCP 提示词
+├── dist/                  # 编译输出
+├── .airiotrc.json.example # 配置示例
+└── package.json
+```
+
 ## API 文档
 
 本服务器基于 [AIRIOT API 4.0](https://airiot.apifox.cn/llms.txt) 文档实现。
 
 主要接口包括：
 
-- **表管理**: `/api/core/table/*`
-- **表记录管理**: `/api/core/table-record/*`
-- **属性点管理**: `/api/core/table/{id}/tags`
+- **表管理**: `/core/t/schema/*`
+- **表记录管理**: `/core/t/{table}/d/*`
+- **属性点管理**: `/core/t/schema/tag/*`
 - **时序数据**: `/api/core/time-series/*`
-- **统计**: `/api/core/table/online-stats`
+- **告警管理**: `/api/alarms/*`
+- **文件管理**: `/api/files/*`
+- **设备控制**: `/api/control/*`
+- **报表管理**: `/api/reports/*`
 
-## 注意事项
+## 错误处理
 
-1. **认证**: 建议使用 Token 认证，避免频繁登录
-2. **权限**: 确保账号有相应的数据访问权限
-3. **性能**: 大数据量查询时注意使用 `limit` 和 `skip` 参数
-4. **错误处理**: 所有工具调用都会返回详细错误信息
+服务器实现了完善的错误处理机制：
+
+- **NetworkError**: 网络连接错误
+- **AuthError**: 认证失败（401）
+- **NotFoundError**: 资源不存在（404）
+- **ApiError**: API 请求错误（4xx/5xx）
+- **ValidationError**: 参数验证错误
+
+所有错误都会返回详细的错误信息，包括错误代码和详情。
 
 ## 许可证
 

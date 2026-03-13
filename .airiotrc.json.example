@@ -1,0 +1,10 @@
+{
+  "baseUrl": "https://your-airiot-server.com",
+  "projectId": "your-project-id",
+  "token": "your-token-here",
+  "username": "",
+  "password": "",
+  "timeout": 30000,
+  "logLevel": "info",
+  "retries": 3
+}
