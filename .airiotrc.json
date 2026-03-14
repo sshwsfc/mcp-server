@@ -1,0 +1,10 @@
+{
+  "baseUrl": "https://p.airiot.link/rest",
+  "projectId": "698aaa639c9e4f6d2731b1fc",
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc3NDYxNTk4NiwibmJmIjoxNzczNDA2Mzg2LCJpYXQiOjE3NzM0MDYzODYsInByb2plY3RJZCI6IjY5OGFhYTYzOWM5ZTRmNmQyNzMxYjFmYyIsImN1c3RvbSI6eyJ0b2tlblR5cGUiOiJwcm9qZWN0IiwidXNlck5hbWUiOiJhZG1pbiJ9fQ.-42YYiE_ImnxAcDE4gW0ijzxalM5O8maUlc6Ki3uJrJVXczCEsI-rBkYk_X35MNdVB6JLlBMun8v0jezF4f1Dw",
+  "username": "admin",
+  "password": "admin123",
+  "timeout": 30000,
+  "logLevel": "info",
+  "retries": 3
+}

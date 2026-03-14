@@ -327,6 +327,93 @@ AI 可以直接读取以下资源作为上下文：
 }
 ```
 
+## CLI 使用
+
+项目同时提供 CLI 工具 `airiot`，用于命令行操作 AIRIOT 平台。
+
+### 安装
+
+```bash
+npm install -g .
+# 或使用 npx
+npx @airiot/mcp-server
+```
+
+### 配置
+
+首次使用需要登录：
+
+```bash
+airiot login --url https://your-airiot-server.com --project your-project-id
+```
+
+或使用 Token：
+
+```bash
+airiot login --url https://your-airiot-server.com --project your-project-id --token your-token
+```
+
+### 常用命令
+
+```bash
+# 查看帮助
+airiot --help
+
+# 查询数据表
+airiot tables
+airiot table <table-id>
+
+# 查询记录
+airiot records <table-id>
+airiot record <table-id> <record-id>
+
+# 查询报警
+airiot warnings
+airiot warnings confirm <warning-id>
+airiot warnings resolve <warning-id>
+
+# 查询最新数据
+airiot data-latest --device <device-id> --tag <tag-id>
+
+# 查询历史数据
+airiot data-history --device <device-id> --tag <tag-id> --start <timestamp> --end <timestamp>
+
+# 设备控制
+airiot control-send --device <device-id> --tag <tag-name> --value <value>
+
+# 查看配置
+airiot config
+
+# 登出
+airiot logout
+```
+
+更多命令请查看 `airiot --help`。
+
+## 测试
+
+项目包含完整的测试套件，使用 Vitest 进行测试。
+
+```bash
+# 运行所有测试
+npm test
+
+# 运行测试并监听文件变化
+npm test -- --watch
+
+# 运行测试并生成覆盖率报告
+npm run test:coverage
+
+# 运行测试一次（不监听）
+npm run test:run
+```
+
+测试覆盖范围：
+- ✅ 所有 CLI 命令功能测试
+- ✅ 工具函数测试
+- ✅ 配置管理测试
+- ✅ API 客户端 mock 测试
+
 ## 开发
 
 ```bash
@@ -339,8 +426,11 @@ npm run dev
 # 构建
 npm run build
 
-# 运行
+# 运行 MCP 服务器
 npm start
+
+# 运行 CLI
+npm run cli
 ```
 
 ## 项目结构
@@ -356,9 +446,27 @@ mcp-server/
 │   ├── errors.ts          # 错误处理
 │   ├── tools/             # MCP 工具
 │   ├── resources/         # MCP 资源
-│   └── prompts/           # MCP 提示词
+│   ├── prompts/           # MCP 提示词
+│   └── cli/               # CLI 工具
+│       ├── index.ts       # CLI 入口
+│       ├── config.ts      # CLI 配置管理
+│       ├── formatter.ts   # 输出格式化
+│       ├── utils.ts       # CLI 工具函数
+│       ├── commands/      # CLI 命令模块
+│       │   ├── warning.ts # 报警管理命令
+│       │   ├── tables.ts  # 表管理命令
+│       │   ├── records.ts # 记录管理命令
+│       │   ├── tags.ts    # 属性点查询命令
+│       │   ├── data.ts    # 时序数据命令
+│       │   ├── stats.ts   # 统计命令
+│       │   ├── files.ts   # 文件管理命令
+│       │   ├── control.ts # 设备控制命令
+│       │   ├── reports.ts # 报表管理命令
+│       │   └── users.ts   # 用户管理命令
+│       └── tests/         # 测试工具
 ├── dist/                  # 编译输出
 ├── .airiotrc.json.example # 配置示例
+├── vitest.config.ts       # 测试配置
 └── package.json
 ```
 
