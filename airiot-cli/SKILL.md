@@ -18,7 +18,7 @@ keywords: AIRIOT, 物联网平台, 设备管理, 数据采集, 表管理, 属性
 ## CLI 基本用法
 
 ```bash
-# 安装 CLI
+# 安装 CLI, 应首先检测是否已安装 Node.js 和 npm，如果未安装，请先安装 Node.js（建议版本 20 及以上），然后检测airiot命令是否可用，如果不可用则提示安装。
 npm install -g @airiot/tools
 
 # 登录连接平台
@@ -303,10 +303,11 @@ airiot table-create [选项]
 | `id` | string | 是 | 表的唯一标识符 |
 | `title` | string | 是 | 表的显示名称 |
 | `showField` | string | 否 | 用于列表展示的默认字段 |
+| `schema` | object | 是 | 表的结构定义，是基于标准的 JSON Schema 的扩展结构|
 | `schema.key` | string | 是 | 内部使用的键名 |
 | `schema.name` | string | 是 | 表的显示名称 |
 | `schema.type` | string | 是 | 固定值 "object" |
-| `schema.properties` | object | 是 | 字段定义对象 |
+| `schema.properties` | object | 是 | 字段定义对象, JSON Schema property |
 | `schema.required` | array | 是 | 必填字段列表 |
 | `schema.form` | array | 是 | 表单显示的字段顺序 |
 | `schema.listFields` | array | 是 | 列表显示的字段 |
@@ -316,7 +317,7 @@ airiot table-create [选项]
 | 属性 | 类型 | 描述 |
 |------|------|------|
 | `key` | string | 字段唯一标识 |
-| `type` | string | 数据类型：string/number/boolean/object/array/date |
+| `type` | string | 数据类型(JSON Schema property type)：string/number/boolean/object/array |
 | `title` | string | 字段显示名称 |
 | `fieldType` | string | 表单控件类型：input/select/boolean/datePicker/number/file 等 |
 | `listFields` | boolean | 是否在列表中显示 |
