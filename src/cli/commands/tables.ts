@@ -48,7 +48,24 @@ export async function tablesCreate(options: any): Promise<void> {
 export async function tablesUpdate(id: string, options: any): Promise<void> {
   await executeCommand(async () => {
     const client = await getApiClient();
-    await client.updateTable(id, options);
+
+    // 从 --json 参数或 --file 参数读取表定义
+    let tableData: any;
+    if (options.json) {
+      try {
+        tableData = JSON.parse(options.json);
+      } catch (e) {
+        throw new Error(`无效的JSON格式: ${e}`);
+      }
+    } else if (options.file) {
+      const fs = await import('fs');
+      const content = await fs.promises.readFile(options.file, 'utf-8');
+      tableData = JSON.parse(content);
+    } else {
+      throw new Error('请提供 --json 或 --file 参数');
+    }
+
+    await client.updateTable(id, tableData);
     console.log(formatSuccess('更新成功'));
   });
 }

@@ -167,22 +167,47 @@ describe('表管理命令', () => {
   });
 
   describe('tablesUpdate', () => {
-    it('应该成功更新表', async () => {
+    it('应该成功更新表（使用 --json 参数）', async () => {
       mockClient.updateTable.mockResolvedValue(undefined);
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
+      const tableData = { name: '更新后的表名', title: '更新后的标题' };
       await tablesCmds.tablesUpdate('table-1', {
-        name: '更新后的表名',
-        description: '更新后的描述',
+        json: JSON.stringify(tableData),
       });
 
-      expect(mockClient.updateTable).toHaveBeenCalledWith('table-1', {
-        name: '更新后的表名',
-        description: '更新后的描述',
-      });
+      expect(mockClient.updateTable).toHaveBeenCalledWith('table-1', tableData);
       expect(consoleLogSpy).toHaveBeenCalledWith('✓ 更新成功');
       consoleLogSpy.mockRestore();
+    });
+
+    it('应该成功更新表（使用 --file 参数）', async () => {
+      mockClient.updateTable.mockResolvedValue(undefined);
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const tableData = { name: '更新后的表名', title: '更新后的标题' };
+      const fs = await import('fs');
+      vi.spyOn(fs.promises, 'readFile').mockResolvedValue(JSON.stringify(tableData));
+
+      await tablesCmds.tablesUpdate('table-1', {
+        file: 'table-update.json',
+      });
+
+      expect(mockClient.updateTable).toHaveBeenCalledWith('table-1', tableData);
+      expect(consoleLogSpy).toHaveBeenCalledWith('✓ 更新成功');
+      consoleLogSpy.mockRestore();
+    });
+
+    it('应该在没有参数时报错', async () => {
+      await expect(tablesCmds.tablesUpdate('table-1', {}))
+        .rejects.toThrow('请提供 --json 或 --file 参数');
+    });
+
+    it('应该在无效JSON时报错', async () => {
+      await expect(tablesCmds.tablesUpdate('table-1', { json: 'invalid json' }))
+        .rejects.toThrow('无效的JSON格式');
     });
   });
 

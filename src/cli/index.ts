@@ -269,8 +269,8 @@ program
 program
   .command('table-update <id>')
   .description('更新数据表')
-  .option('--name <name>', '表名称')
-  .option('--description <desc>', '表描述')
+  .option('--file <path>', '从JSON文件读取表定义')
+  .option('--json <json>', 'JSON格式的表定义数据')
   .action(async (id, options) => {
     await tablesCmds.tablesUpdate(id, options);
   });
